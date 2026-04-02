@@ -227,13 +227,188 @@
   .status-dot.responded { background: #22c55e; }
   .status-dot.pending   { background: #f59e0b; }
 
+  /* Mobile header (hidden on desktop) */
+  .mobile-header {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: #18181b;
+    border-bottom: 1px solid #27272a;
+    z-index: 20;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+  .mobile-header .mobile-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .mobile-header .mobile-sub {
+    font-size: 11px;
+    color: #a1a1aa;
+  }
+  .hamburger {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    line-height: 1;
+  }
+  .hamburger:hover { background: #27272a; }
+  .mobile-stats-bar {
+    display: none;
+    position: fixed;
+    top: 56px; left: 0; right: 0;
+    background: #18181b;
+    border-bottom: 1px solid #27272a;
+    z-index: 19;
+    padding: 8px 16px;
+    gap: 16px;
+    justify-content: center;
+  }
+  .mobile-stats-bar .ms {
+    font-size: 12px;
+    color: #a1a1aa;
+    font-weight: 600;
+  }
+  .mobile-stats-bar .ms span {
+    font-weight: 800;
+  }
+
+  /* Overlay for mobile sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9;
+  }
+
   /* Responsive */
   @media (max-width: 768px) {
-    .sidebar { display: none; }
-    .main { margin-left: 0; padding: 20px 16px; }
+    .mobile-header { display: flex; }
+    .mobile-stats-bar { display: flex; }
+
+    .sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      z-index: 30;
+      width: 260px;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay.open { display: block; z-index: 25; }
+
+    .main {
+      margin-left: 0;
+      padding: 120px 12px 24px 12px;
+    }
+    .page-header h1 { font-size: 20px; }
+    .page-header p { font-size: 12px; }
+
+    .summary-cards {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      padding: 12px 10px;
+      border-radius: 10px;
+    }
+    .summary-card .char-icon { font-size: 22px; margin-bottom: 4px; }
+    .summary-card .char-name { font-size: 10px; }
+    .summary-card .char-count { font-size: 20px; }
+
+    .filter-bar {
+      gap: 6px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+    }
+    .filter-btn {
+      padding: 7px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .group-header {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .group-header h2 { font-size: 16px; }
+    .group-count { margin-left: 0; }
+
+    /* Card-style rows on mobile */
+    .child-table thead { display: none; }
+    .child-table {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+    }
+    .child-table tbody tr {
+      display: flex;
+      flex-wrap: wrap;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      padding: 12px 14px;
+      align-items: center;
+      gap: 6px;
+    }
+    .child-table tbody tr:hover { background: #1f1f23; }
+    .child-table tbody td {
+      border-bottom: none;
+      padding: 0;
+      font-size: 13px;
+    }
+    /* # column */
+    .child-table tbody td:nth-child(1) {
+      width: 24px;
+      font-size: 11px;
+      color: #71717a;
+      font-weight: 700;
+    }
+    /* Name column */
+    .child-table tbody td:nth-child(2) {
+      flex: 1;
+      min-width: 0;
+    }
+    .child-name { font-size: 14px; }
+    .child-name small {
+      display: block;
+      font-weight: 400;
+      color: #a1a1aa;
+      font-size: 11px;
+      margin-top: 1px;
+    }
+    /* Grade column */
+    .child-table tbody td:nth-child(3) {
+      order: 3;
+    }
+    /* Character column */
+    .child-table tbody td:nth-child(4) {
+      width: 100%;
+      order: 4;
+      margin-top: 4px;
+    }
+    /* Status column — hide on mobile, shown via char badge */
+    .child-table tbody td:nth-child(5) {
+      display: none;
+    }
+  }
+
+  @media (max-width: 380px) {
     .summary-cards { grid-template-columns: repeat(2, 1fr); }
-    .child-table { font-size: 12px; }
-    .child-table thead th, .child-table tbody td { padding: 8px 10px; }
+    .summary-card .char-count { font-size: 18px; }
+    .main { padding: 116px 8px 20px 8px; }
   }
 
   /* Filter bar */
@@ -270,6 +445,21 @@
 </style>
 </head>
 <body>
+
+<!-- Mobile Header -->
+<header class="mobile-header">
+  <div>
+    <div class="mobile-title">CODED Juniors</div>
+    <div class="mobile-sub">Game Dev Weekend 🎮</div>
+  </div>
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+</header>
+<div class="mobile-stats-bar">
+  <div class="ms">📋 <span>57</span> Total</div>
+  <div class="ms">✅ <span style="color:#22c55e">38</span> Responded</div>
+  <div class="ms">⏳ <span style="color:#f59e0b">19</span> Pending</div>
+</div>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <!-- Sidebar -->
 <aside class="sidebar">
@@ -407,7 +597,7 @@
         <!-- No response -->
         <tr data-char="none"><td>24</td><td class="child-name">بدر عبدالله العصيمي</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">— No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
         <tr data-char="none"><td>25</td><td class="child-name">AlWaleed AlOthman</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">— No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
-        <tr data-char="none"><td>26</td><td class="child-name">ةالا يوسف القصيمي</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">— No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>26</td><td class="child-name">تالا يوسف القصيمي</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">— No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
         <tr data-char="pokemon"><td>27</td><td class="child-name">محمد اكبر<br><small style="color:#71717a">Mohammad Akbar</small></td><td><span class="grade-pill">G2</span></td><td><span class="char-badge pokemon">⚡ Pokémon</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
         <tr data-char="none"><td>28</td><td class="child-name">عذبي يوسف العبدالله</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">— No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
         <tr data-char="none"><td>29</td><td class="child-name">Lujain Hashem Ghadhanfari</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">— No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
@@ -516,6 +706,19 @@ function setActiveFilter(idx) {
     b.classList.toggle('active', i === idx);
   });
 }
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('open');
+}
+// Close sidebar when nav link clicked on mobile
+document.querySelectorAll('.sidebar-nav a').forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth <= 768) {
+      document.querySelector('.sidebar').classList.remove('open');
+      document.querySelector('.sidebar-overlay').classList.remove('open');
+    }
+  });
+});
 </script>
 </body>
 </html>
