@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Dev Weekend - Character Allocation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0f1117;
+    color: #e4e4e7;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0;
+    width: 240px;
+    height: 100vh;
+    background: #18181b;
+    border-right: 1px solid #27272a;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+  }
+  .sidebar-logo {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .sidebar-sub {
+    font-size: 12px;
+    color: #a1a1aa;
+    margin-bottom: 32px;
+    padding: 4px 8px;
+    background: #27272a;
+    border-radius: 6px;
+    display: inline-block;
+    width: fit-content;
+  }
+  .sidebar-nav { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .sidebar-nav li a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #a1a1aa;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .sidebar-nav li a:hover { background: #27272a; color: #fff; }
+  .sidebar-nav li a.active { background: #7c3aed; color: #fff; }
+  .sidebar-nav li a .icon { font-size: 18px; width: 24px; text-align: center; }
+
+  .sidebar-stats {
+    margin-top: auto;
+    background: #27272a;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .sidebar-stats h4 { font-size: 12px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .stat-row:last-child { margin-bottom: 0; }
+  .stat-label { font-size: 13px; color: #d4d4d8; }
+  .stat-value { font-size: 13px; font-weight: 700; color: #fff; }
+
+  /* Main */
+  .main {
+    margin-left: 240px;
+    padding: 32px 40px;
+  }
+  .page-header {
+    margin-bottom: 32px;
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .page-header p {
+    font-size: 14px;
+    color: #71717a;
+  }
+
+  /* Summary Cards */
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .summary-card {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .summary-card .char-icon { font-size: 28px; margin-bottom: 8px; }
+  .summary-card .char-name { font-size: 12px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .summary-card .char-count { font-size: 24px; font-weight: 800; color: #fff; margin-top: 2px; }
+
+  /* Group Section */
+  .group-section {
+    margin-bottom: 40px;
+  }
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #27272a;
+  }
+  .group-badge {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .group-badge.to { background: #16a34a; }
+  .group-badge.ki { background: #2563eb; }
+  .group-badge.te { background: #dc2626; }
+
+  .group-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .group-count {
+    margin-left: auto;
+    font-size: 13px;
+    color: #a1a1aa;
+    background: #27272a;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  /* Table */
+  .child-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .child-table thead th {
+    background: #1f1f23;
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #27272a;
+  }
+  .child-table tbody tr {
+    transition: background 0.1s;
+  }
+  .child-table tbody tr:hover {
+    background: #1f1f23;
+  }
+  .child-table tbody td {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid #27272a;
+    vertical-align: middle;
+  }
+  .child-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .child-name {
+    font-weight: 600;
+    color: #fff;
+  }
+  .grade-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #27272a;
+    color: #d4d4d8;
+  }
+
+  /* Character badges */
+  .char-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .char-badge.pokemon    { background: #1e3a5f; color: #60a5fa; }
+  .char-badge.mario      { background: #5c3a1e; color: #fbbf24; }
+  .char-badge.animal     { background: #1e3f2e; color: #4ade80; }
+  .char-badge.pacman     { background: #5c4b1e; color: #facc15; }
+  .char-badge.minecraft  { background: #1e3f1e; color: #86efac; }
+  .char-badge.hellokitty { background: #4a1e3f; color: #f9a8d4; }
+  .char-badge.sonic      { background: #1e2e5f; color: #818cf8; }
+  .char-badge.none       { background: #27272a; color: #71717a; }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-dot.responded { background: #22c55e; }
+  .status-dot.pending   { background: #f59e0b; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 20px 16px; }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    .child-table { font-size: 12px; }
+    .child-table thead th, .child-table tbody td { padding: 8px 10px; }
+  }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #27272a;
+    background: #18181b;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: #7c3aed; color: #fff; }
+  .filter-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+
+  /* Print styles */
+  @media print {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .filter-bar { display: none; }
+    body { background: #fff; color: #000; }
+    .child-table { border: 1px solid #ccc; }
+    .child-table thead th { background: #f3f3f3; color: #333; }
+    .child-table tbody td { color: #333; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">CODED Juniors</div>
+  <div class="sidebar-sub">Game Dev Weekend with AI</div>
+  <ul class="sidebar-nav">
+    <li><a href="#" class="active"><span class="icon">ð®</span> Character Map</a></li>
+    <li><a href="#group-to"><span class="icon">ð§</span> Toddlers (TO)</a></li>
+    <li><a href="#group-ki"><span class="icon">ð¦</span> Kids (KI)</a></li>
+    <li><a href="#group-te"><span class="icon">ð§</span> Teens (TE)</a></li>
+  </ul>
+  <div class="sidebar-stats">
+    <h4>Response Stats</h4>
+    <div class="stat-row">
+      <span class="stat-label">Total Registered</span>
+      <span class="stat-value">57</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Responded</span>
+      <span class="stat-value" style="color:#22c55e">19</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">No Response</span>
+      <span class="stat-value" style="color:#f59e0b">38</span>
+    </div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main">
+  <div class="page-header">
+    <h1>ð® Game Dev Weekend - Character Allocation</h1>
+    <p>April Weekend #1 &mdash; Cross-referenced character selections per registered child</p>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="char-icon">âï¸</div>
+      <div class="char-name">Minecraft</div>
+      <div class="char-count">7</div>
+    </div>
+    <div class="summary-card">
+      <div class="char-icon">ð</div>
+      <div class="char-name">Mario</div>
+      <div class="char-count">3</div>
+    </div>
+    <div class="summary-card">
+      <div class="char-icon">ðµ</div>
+      <div class="char-name">Sonic</div>
+      <div class="char-count">4</div>
+    </div>
+    <div class="summary-card">
+      <div class="char-icon">â¡</div>
+      <div class="char-name">Pokemon</div>
+      <div class="char-count">2</div>
+    </div>
+    <div class="summary-card">
+      <div class="char-icon">ðï¸</div>
+      <div class="char-name">Animal Crossing</div>
+      <div class="char-count">2</div>
+    </div>
+    <div class="summary-card">
+      <div class="char-icon">ð</div>
+      <div class="char-name">Hello Kitty</div>
+      <div class="char-count">1</div>
+    </div>
+    <div class="summary-card">
+      <div class="char-icon">â</div>
+      <div class="char-name">No Response</div>
+      <div class="char-count">38</div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterAll()">All</button>
+    <button class="filter-btn" onclick="filterChar('responded')">Responded Only</button>
+    <button class="filter-btn" onclick="filterChar('pending')">No Response</button>
+    <button class="filter-btn" onclick="filterChar('minecraft')">âï¸ Minecraft</button>
+    <button class="filter-btn" onclick="filterChar('mario')">ð Mario</button>
+    <button class="filter-btn" onclick="filterChar('sonic')">ðµ Sonic</button>
+    <button class="filter-btn" onclick="filterChar('pokemon')">â¡ Pokemon</button>
+    <button class="filter-btn" onclick="filterChar('animal')">ðï¸ Animal Crossing</button>
+    <button class="filter-btn" onclick="filterChar('hellokitty')">ð Hello Kitty</button>
+  </div>
+
+  <!-- GROUP: WE1-TO-A (Toddlers) -->
+  <div class="group-section" id="group-to">
+    <div class="group-header">
+      <span class="group-badge to">WE1-TO-A</span>
+      <h2>Toddlers (Grades 1-2)</h2>
+      <span class="group-count">27 children</span>
+    </div>
+    <table class="child-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Child Name</th>
+          <th>Grade</th>
+          <th>Character</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr data-char="pokemon"><td>1</td><td class="child-name">ØµÙØ± ØµØ§ÙØ­ Ø§ÙØ±ÙØ§Ø¹Ù<br><small style="color:#71717a">Saqer Salah Alrefai</small></td><td><span class="grade-pill">G1</span></td><td><span class="char-badge pokemon">â¡ Pokemon</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="mario"><td>2</td><td class="child-name">Layth Hammami<br><small style="color:#71717a">ÙÙØ« Ø­ÙØ§ÙÙ</small></td><td><span class="grade-pill">G2</span></td><td><span class="char-badge mario">ð Mario</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="minecraft"><td>3</td><td class="child-name">Ø³ÙÙÙØ§Ù ÙØ­ÙØ¯ ÙÙÙ<br><small style="color:#71717a">Sulaiman Naqi</small></td><td><span class="grade-pill">G1</span></td><td><span class="char-badge minecraft">âï¸ Minecraft</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="minecraft"><td>4</td><td class="child-name">Ø²ÙØ¯ Ø§ÙØªÙÙÙÙ<br><small style="color:#71717a">Zayd Al-Tamimi</small></td><td><span class="grade-pill">G2</span></td><td><span class="char-badge minecraft">âï¸ Minecraft</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="mario"><td>5</td><td class="child-name">ÙÙØ³Ù Ø£Ø­ÙØ¯<br><small style="color:#71717a">Yousef Ahmad</small></td><td><span class="grade-pill">G1</span></td><td><span class="char-badge mario">ð Mario</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="animal"><td>6</td><td class="child-name">Hamad AlKhaled</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge animal">ðï¸ Animal Crossing</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="animal"><td>7</td><td class="child-name">Khaled AlKhaled</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge animal">ðï¸ Animal Crossing</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="sonic"><td>8</td><td class="child-name">Ø¹Ø¨Ø¯Ø§ÙÙÙ Ø§Ø­ÙØ¯ Ø§ÙÙÙØ§Ù<br><small style="color:#71717a">Abdullah Alqallaf</small></td><td><span class="grade-pill">G1</span></td><td><span class="char-badge sonic">ðµ Sonic</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="minecraft"><td>9</td><td class="child-name">Sayer Naser AlSayer</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge minecraft">âï¸ Minecraft</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="mario"><td>10</td><td class="child-name">Ø§Ø­ÙØ¯ Ø§ÙÙÙÙ<br><small style="color:#71717a">Ahmad Alnaqi</small></td><td><span class="grade-pill">G1</span></td><td><span class="char-badge mario">ð Mario</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="pokemon"><td>11</td><td class="child-name">Shaikhah Abdullah<br><small style="color:#71717a">Ø´ÙØ®Ø© Ø¹Ø¨Ø¯Ø§ÙÙÙ</small></td><td><span class="grade-pill">G2</span></td><td><span class="char-badge pokemon">â¡ Pokemon</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="sonic"><td>12</td><td class="child-name">Sami Abdullateef Alnakkas</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge sonic">ðµ Sonic</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="minecraft"><td>13</td><td class="child-name">musaed abdulrazaq alfares</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge minecraft">âï¸ Minecraft</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="minecraft"><td>14</td><td class="child-name">Ø±Ø§Ø´Ø¯ ÙØ§ØµØ± Ø¨ÙØ±Ø³ÙÙ<br><small style="color:#71717a">Rashed Naser Boresli</small></td><td><span class="grade-pill">G2</span></td><td><span class="char-badge minecraft">âï¸ Minecraft</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="minecraft"><td>15</td><td class="child-name">ÙÙØ¯ ÙØ§ØµØ± Ø¨ÙØ±Ø³ÙÙ<br><small style="color:#71717a">Fahad Naser Boresli</small></td><td><span class="grade-pill">G2</span></td><td><span class="char-badge minecraft">âï¸ Minecraft</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <!-- No response -->
+        <tr data-char="none"><td>16</td><td class="child-name">Ø¨Ø¯Ø± Ø¹Ø¨Ø¯Ø§ÙÙÙ Ø§ÙØ¹ØµÙÙÙ</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>17</td><td class="child-name">AlWaleed AlOthman</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>18</td><td class="child-name">Ø¹Ø¨Ø¯Ø§ÙØ­ÙÙØ¯ Ø¹Ø¨Ø¯Ø§ÙÙÙ Ø§ÙØ¬ÙÙØ¨Ù</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>19</td><td class="child-name">ØªØ§ÙØ§ ÙÙØ³Ù Ø§ÙÙØµÙÙÙ</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>20</td><td class="child-name">Abdullah Akbar</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>21</td><td class="child-name">Ø¹Ø¨Ø§Ø³ Ø¹ÙÙ Ø´ÙØ³Ø§Ù</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>22</td><td class="child-name">ÙØ­ÙØ¯ Ø§ÙØ¨Ø±</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>23</td><td class="child-name">Eissa Munther Abdulraheem</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>24</td><td class="child-name">Ø¹Ø°Ø¨Ù ÙÙØ³Ù Ø§ÙØ¹Ø¨Ø¯Ø§ÙÙÙ</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>25</td><td class="child-name">Lujain Hashem Ghadhanfari</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>26</td><td class="child-name">ÙØ§ÙØ¶ Ø³Ø¹Ø¯ Ø§ÙÙØ§ÙØ¶</td><td><span class="grade-pill">G1</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>27</td><td class="child-name">ÙØ·ÙÙØ© Ø³Ø¹Ø¯ Ø§ÙÙØ§ÙØ¶</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- GROUP: WE1-KI-A (Kids) -->
+  <div class="group-section" id="group-ki">
+    <div class="group-header">
+      <span class="group-badge ki">WE1-KI-A</span>
+      <h2>Kids (Grades 3-5)</h2>
+      <span class="group-count">17 children</span>
+    </div>
+    <table class="child-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Child Name</th>
+          <th>Grade</th>
+          <th>Character</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr data-char="sonic"><td>1</td><td class="child-name">Nawaf Abdullahfadhil</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge sonic">ðµ Sonic</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="hellokitty"><td>2</td><td class="child-name">Ø§ÙØ±ÙÙ ÙØ­ÙØ¯ ÙÙÙ<br><small style="color:#71717a">ALREEM Naqi</small></td><td><span class="grade-pill">G4</span></td><td><span class="char-badge hellokitty">ð Hello Kitty</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="sonic"><td>3</td><td class="child-name">Ahmad Altheeb</td><td><span class="grade-pill">G4</span></td><td><span class="char-badge sonic">ðµ Sonic</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="animal"><td>4</td><td class="child-name">ØºØ§Ø²Ù Ø£Ø­ÙØ¯<br><small style="color:#71717a">Ghazi Ahmad</small></td><td><span class="grade-pill">G3</span></td><td><span class="char-badge animal">ðï¸ Animal Crossing</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="none"><td>5</td><td class="child-name">ali dashti</td><td><span class="grade-pill">G5</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>6</td><td class="child-name">Ø£Ø³Ø§ÙØ© ÙØ­ÙØ¯ Ø¹ÙØ¶</td><td><span class="grade-pill">G4</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>7</td><td class="child-name">Musaed</td><td><span class="grade-pill">G5</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>8</td><td class="child-name">Fahad Mohammed Ismail</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>9</td><td class="child-name">ÙÙÙØ¯ Ø´ÙØ§ÙÙ Ø§ÙØ¨Ø­Ø±</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>10</td><td class="child-name">ÙÙØ§ Ø´ÙØ§ÙÙ Ø§ÙØ¨Ø­Ø±</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>11</td><td class="child-name">Ø­Ø³ÙÙ Ø¹ÙÙ Ø´ÙØ³Ø§Ù</td><td><span class="grade-pill">G5</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>12</td><td class="child-name">Ø¹ÙÙ ÙÙØ«Ù Ø¹Ø¨Ø¯Ø§ÙØ±Ø­ÙÙ</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>13</td><td class="child-name">ÙØ±ÙÙ ÙÙØ³Ù Ø§ÙØ¹Ø¨Ø¯Ø§ÙÙÙ</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>14</td><td class="child-name">ÙØ§Ø±Ø³ ÙÙØ¯ Ø§ÙÙØµØ±Ø§ÙÙÙ</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>15</td><td class="child-name">Ø¹Ø¨Ø¯Ø§ÙØ±Ø­ÙÙ ÙÙØ¯ Ø§ÙÙØµØ±Ø§ÙÙÙ</td><td><span class="grade-pill">G4</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>16</td><td class="child-name">Fares Almuaili</td><td><span class="grade-pill">G3</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>17</td><td class="child-name">Ø§ÙØ±ÙÙ ÙØ­ÙØ¯ ÙÙÙ (duplicate check)</td><td><span class="grade-pill">G4</span></td><td><span class="char-badge none">â verify</span></td><td><span class="status-dot pending"></span>Verify</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- GROUP: WE1-TE-A (Teens) -->
+  <div class="group-section" id="group-te">
+    <div class="group-header">
+      <span class="group-badge te">WE1-TE-A</span>
+      <h2>Teens (Grades 6-8)</h2>
+      <span class="group-count">13 children</span>
+    </div>
+    <table class="child-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Child Name</th>
+          <th>Grade</th>
+          <th>Character</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr data-char="minecraft"><td>1</td><td class="child-name">AbdulAziz Yousef AlAwadh</td><td><span class="grade-pill">G8</span></td><td><span class="char-badge minecraft">âï¸ Minecraft</span></td><td><span class="status-dot responded"></span>Responded</td></tr>
+        <tr data-char="none"><td>2</td><td class="child-name">Ø¹Ø¨Ø¯Ø§ÙØ¹Ø²ÙØ² Ø¹Ø¨Ø¯Ø§ÙÙÙ Ø§ÙØ¹ØµÙÙÙ</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>3</td><td class="child-name">ÙÙØµÙ ÙØ­ÙØ¯ Ø¹ÙØ¶</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>4</td><td class="child-name">Ø§ÙÙÙÙ ÙØ­ÙØ¯ Ø§Ø³ÙØ§Ø¹ÙÙ</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>5</td><td class="child-name">Mohammad AlNakkas</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>6</td><td class="child-name">Mahdi AlNakkas</td><td><span class="grade-pill">G7</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>7</td><td class="child-name">Ø¹Ø«ÙØ§Ù Ø§ÙØ¯ÙØ³Ø±Ù</td><td><span class="grade-pill">G8</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>8</td><td class="child-name">Ø­Ø³Ù Ø¹ÙÙ Ø´ÙØ³Ø§Ù</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>9</td><td class="child-name">Ø¹Ø¨Ø¯Ø§ÙÙÙØ§Ø¨ Ø£Ø­ÙØ¯ Ø§ÙØ¹ÙØ³Ù</td><td><span class="grade-pill">G8</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>10</td><td class="child-name">Ø¹ÙØ± Ø§ÙØ¯ÙØ³Ø±Ù</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>11</td><td class="child-name">Abdullah alsendi</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>12</td><td class="child-name">ÙÙØ³Ù Ø¹Ø¨Ø¯Ø§ÙÙÙ Ø§ÙÙØ·ÙØ¹</td><td><span class="grade-pill">G6</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+        <tr data-char="none"><td>13</td><td class="child-name">salem ahmed alsaif</td><td><span class="grade-pill">G2</span></td><td><span class="char-badge none">â No response</span></td><td><span class="status-dot pending"></span>Pending</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top: 32px; padding: 16px; background: #18181b; border: 1px solid #27272a; border-radius: 12px; font-size: 13px; color: #71717a;">
+    <strong style="color:#a1a1aa;">Last updated:</strong> April 2, 2026 &mdash; Data cross-referenced from Notion form responses and registration PDF.
+  </div>
+</div>
+
+<script>
+function filterAll() {
+  document.querySelectorAll('.child-table tbody tr').forEach(r => r.style.display = '');
+  setActiveFilter(0);
+}
+function filterChar(type) {
+  document.querySelectorAll('.child-table tbody tr').forEach(r => {
+    const char = r.getAttribute('data-char');
+    if (type === 'responded') {
+      r.style.display = (char && char !== 'none') ? '' : 'none';
+    } else if (type === 'pending') {
+      r.style.display = char === 'none' ? '' : 'none';
+    } else {
+      r.style.display = char === type ? '' : 'none';
+    }
+  });
+  const idx = ['all','responded','pending','minecraft','mario','sonic','pokemon','animal','hellokitty'].indexOf(type);
+  setActiveFilter(idx === -1 ? 0 : idx);
+}
+function setActiveFilter(idx) {
+  document.querySelectorAll('.filter-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+}
+</script>
+</body>
+</html>
